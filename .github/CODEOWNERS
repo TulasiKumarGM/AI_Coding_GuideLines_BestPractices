@@ -1,15 +1,34 @@
-# Global code owners
-* @your-username
+# Global code owners - Replace 'YOUR_GITHUB_USERNAME' with your actual GitHub username
+* @YOUR_GITHUB_USERNAME
 
-# C# files
-*.cs @your-username
+# C# Service files - You will review these
+GrpcDemos-master/*/ServiceLib/*.cs @YOUR_GITHUB_USERNAME
+GrpcDemos-master/*/ServiceHost/*.cs @YOUR_GITHUB_USERNAME
+GrpcDemos-master/*/Service/*.cs @YOUR_GITHUB_USERNAME
 
-# Configuration files
-*.json @your-username
-*.yml @your-username
-*.yaml @your-username
-.editorconfig @your-username
-stylecop.json @your-username
+# C# Client files - You will review these
+GrpcDemos-master/*/Client/*.cs @YOUR_GITHUB_USERNAME
 
-# Documentation
-*.md @your-username
+# C# Shared library files - You will review these
+GrpcDemos-master/*/SharedLib/*.cs @YOUR_GITHUB_USERNAME
+
+# Configuration files - You will review these
+*.json @YOUR_GITHUB_USERNAME
+*.yml @YOUR_GITHUB_USERNAME
+*.yaml @YOUR_GITHUB_USERNAME
+.editorconfig @YOUR_GITHUB_USERNAME
+stylecop.json @YOUR_GITHUB_USERNAME
+nuget.config @YOUR_GITHUB_USERNAME
+
+# GitHub workflows - You will review these
+.github/workflows/*.yml @YOUR_GITHUB_USERNAME
+.github/workflows/*.yaml @YOUR_GITHUB_USERNAME
+
+# Documentation - You will review these
+*.md @YOUR_GITHUB_USERNAME
+docs/ @YOUR_GITHUB_USERNAME
+
+# Security-related files - You will review these
+**/security/** @YOUR_GITHUB_USERNAME
+**/auth/** @YOUR_GITHUB_USERNAME
+**/crypto/** @YOUR_GITHUB_USERNAME

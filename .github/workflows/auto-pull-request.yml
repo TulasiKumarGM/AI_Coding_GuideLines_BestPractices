@@ -1,0 +1,71 @@
+name: Auto Create Pull Request
+
+on:
+  push:
+    branches: [ develop, feature/*, bugfix/*, hotfix/* ]
+  workflow_dispatch:
+
+jobs:
+  create-pull-request:
+    runs-on: ubuntu-latest
+    if: github.ref != 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: |
+          Auto-generated PR from ${{ github.ref_name }}
+          
+          Changes:
+          - Code updates from ${{ github.ref_name }} branch
+          - Automated code review will be performed
+          - Please review and approve before merging
+        title: |
+          🔄 Auto PR: ${{ github.ref_name }} → main
+        body: |
+          ## 📝 **Automated Pull Request**
+          
+          This pull request was automatically created from the `${{ github.ref_name }}` branch.
+          
+          ### 🔍 **What's Changed**
+          - Code changes from `${{ github.ref_name }}` branch
+          - Automated code review will be performed
+          - All checks must pass before merge
+          
+          ### 👥 **Reviewers Assigned**
+          - @${{ github.actor }} (Code Owner)
+          - Automated code review bot
+          
+          ### ✅ **Required Checks**
+          - [ ] Code quality analysis
+          - [ ] Security scanning
+          - [ ] Build verification
+          - [ ] Code review approval
+          
+          ### 📋 **Review Guidelines**
+          Please review this code according to our [C# Coding Guidelines](Coding_Guidelines/CSharp-Coding-Guidelines.md):
+          - **Security**: Check for input validation, sanitization
+          - **Performance**: Verify async patterns, memory usage
+          - **Style**: Ensure naming conventions, formatting
+          - **Documentation**: Check for XML comments
+          - **Error Handling**: Verify exception handling
+          
+          ---
+          *This PR was created automatically. Please review thoroughly before merging.*
+        branch: main
+        delete-branch: true
+        assignees: ${{ github.actor }}
+        reviewers: ${{ github.actor }}
+        draft: false
+        labels: |
+          auto-generated
+          needs-review
+          code-quality

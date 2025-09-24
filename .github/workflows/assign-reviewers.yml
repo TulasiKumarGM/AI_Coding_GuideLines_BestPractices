@@ -1,0 +1,175 @@
+name: Assign Reviewers
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+jobs:
+  assign-reviewers:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Assign reviewers based on code changes
+      uses: actions/github-script@v7
+      with:
+        script: |
+          // Get the list of changed files
+          const { data: files } = await github.rest.pulls.listFiles({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: context.issue.number
+          });
+          
+          // Determine reviewers based on file changes
+          let reviewers = [];
+          let teamReviewers = [];
+          
+          // Check if any C# files were changed
+          const csharpFiles = files.filter(file => 
+            file.filename.endsWith('.cs') || 
+            file.filename.endsWith('.csproj') ||
+            file.filename.endsWith('.sln')
+          );
+          
+          if (csharpFiles.length > 0) {
+            // Add C# code reviewers
+            reviewers.push('${{ github.actor }}'); // The person who created the PR
+            teamReviewers.push('code-reviewers'); // If you have a team
+          }
+          
+          // Check for specific areas
+          const hasServiceChanges = files.some(file => 
+            file.filename.includes('Service') || 
+            file.filename.includes('ServiceLib')
+          );
+          
+          const hasClientChanges = files.some(file => 
+            file.filename.includes('Client')
+          );
+          
+          const hasSharedChanges = files.some(file => 
+            file.filename.includes('SharedLib')
+          );
+          
+          // Add specific reviewers based on changes
+          if (hasServiceChanges) {
+            console.log('Service changes detected - adding service reviewers');
+          }
+          
+          if (hasClientChanges) {
+            console.log('Client changes detected - adding client reviewers');
+          }
+          
+          if (hasSharedChanges) {
+            console.log('Shared library changes detected - adding architecture reviewers');
+          }
+          
+          // Assign reviewers
+          if (reviewers.length > 0 || teamReviewers.length > 0) {
+            await github.rest.pulls.requestReviewers({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              reviewers: reviewers,
+              team_reviewers: teamReviewers
+            });
+            
+            console.log(`Assigned reviewers: ${reviewers.join(', ')}`);
+            console.log(`Assigned team reviewers: ${teamReviewers.join(', ')}`);
+          }
+
+    - name: Add review checklist
+      uses: actions/github-script@v7
+      with:
+        script: |
+          // Add a review checklist comment
+          const checklistComment = `## 📋 **Code Review Checklist**
+          
+          Please review this PR according to our [C# Coding Guidelines](Coding_Guidelines/CSharp-Coding-Guidelines.md):
+          
+          ### 🔒 **Security Review**
+          - [ ] Input validation is present
+          - [ ] User input is sanitized
+          - [ ] No hardcoded secrets or credentials
+          - [ ] Proper authentication/authorization
+          - [ ] SQL injection prevention
+          
+          ### ⚡ **Performance Review**
+          - [ ] Async/await patterns are correct
+          - [ ] ConfigureAwait(false) used in library code
+          - [ ] No memory leaks
+          - [ ] Efficient string operations
+          - [ ] Proper disposal of resources
+          
+          ### 🎨 **Code Style Review**
+          - [ ] Naming conventions followed
+          - [ ] Proper indentation and formatting
+          - [ ] No magic numbers or strings
+          - [ ] Consistent code structure
+          - [ ] Proper use of var vs explicit types
+          
+          ### 📚 **Documentation Review**
+          - [ ] XML documentation for public APIs
+          - [ ] Code comments for complex logic
+          - [ ] README updates if needed
+          - [ ] Changelog updates if needed
+          
+          ### 🧪 **Testing Review**
+          - [ ] Unit tests added/updated
+          - [ ] Integration tests if needed
+          - [ ] Test coverage maintained
+          - [ ] Edge cases covered
+          
+          ### 🏗️ **Architecture Review**
+          - [ ] Single responsibility principle
+          - [ ] Proper separation of concerns
+          - [ ] No circular dependencies
+          - [ ] Appropriate design patterns
+          
+          ---
+          
+          **Review Guidelines:**
+          - Be constructive and helpful
+          - Provide specific examples for improvements
+          - Explain why changes are needed
+          - Suggest alternatives when possible
+          - Be respectful and professional
+          
+          **Review Process:**
+          1. Review the code thoroughly
+          2. Check all items in the checklist
+          3. Add specific comments on issues
+          4. Approve or request changes
+          5. Provide overall feedback
+          
+          ---
+          *This checklist is based on our C# Coding Guidelines. Please review each item carefully.*`;
+          
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+            body: checklistComment
+          });
+
+    - name: Set up branch protection
+      uses: actions/github-script@v7
+      with:
+        script: |
+          // Add labels to indicate review status
+          await github.rest.issues.addLabels({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+            labels: [
+              'awaiting-review',
+              'code-quality-check',
+              'security-review-needed',
+              'performance-review-needed'
+            ]
+          });
