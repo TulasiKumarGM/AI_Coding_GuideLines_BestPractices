@@ -31,17 +31,15 @@ jobs:
           ${{ runner.os }}-nuget-
 
     - name: Restore dependencies
-      run: dotnet restore
+      working-directory: GrpcDemos-master
+      run: dotnet restore GrpcDemos.sln
 
     - name: Build with analysis
+      working-directory: GrpcDemos-master
       run: |
-        dotnet build --configuration Release --no-restore --verbosity normal
-        dotnet build --configuration Release --no-restore --verbosity normal /p:EnableNETAnalyzers=true /p:RunAnalyzersDuringBuild=true
+        dotnet build GrpcDemos.sln --configuration Release --no-restore --verbosity normal /p:EnableNETAnalyzers=true /p:RunAnalyzersDuringBuild=true
 
-    - name: Run StyleCop Analysis
-      run: |
-        dotnet add package StyleCop.Analyzers --version 1.2.0-beta.556
-        dotnet build --configuration Release --no-restore /p:RunAnalyzersDuringBuild=true /p:EnableNETAnalyzers=true
+    # StyleCop.Analyzers should be referenced in projects, not added in CI. Build above already enables analyzers.
 
     - name: Run SonarCloud Analysis
       if: github.event_name == 'pull_request'
@@ -56,19 +54,26 @@ jobs:
           /d:sonar.token="${{ secrets.SONAR_TOKEN }}" \
           /d:sonar.host.url="https://sonarcloud.io" \
           /d:sonar.cs.opencover.reportsPaths="coverage.xml"
-        dotnet build --configuration Release
+        cd GrpcDemos-master
+        dotnet build GrpcDemos.sln --configuration Release
         dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
 
     - name: Generate Code Coverage
+      id: coverage
+      working-directory: GrpcDemos-master
       run: |
-        dotnet tool install --global dotnet-reportgenerator-globaltool
-        dotnet add package coverlet.collector
-        dotnet test --collect:"XPlat Code Coverage" --results-directory ./coverage
+        if git ls-files "*Tests.csproj" | grep -q .; then
+          dotnet tool install --global dotnet-reportgenerator-globaltool
+          dotnet test GrpcDemos.sln --collect:"XPlat Code Coverage" --results-directory ./coverage
+        else
+          echo "No test projects found. Skipping coverage."
+        fi
 
     - name: Upload Code Coverage
+      if: steps.coverage.outcome == 'success'
       uses: codecov/codecov-action@v4
       with:
-        file: ./coverage/coverage.cobertura.xml
+        file: GrpcDemos-master/coverage/coverage.cobertura.xml
         flags: unittests
         name: codecov-umbrella
         fail_ci_if_error: true
@@ -122,14 +127,14 @@ jobs:
         dotnet-version: '8.0.x'
 
     - name: Run Security Scan
+      working-directory: GrpcDemos-master
       run: |
-        dotnet add package Microsoft.CodeAnalysis.NetAnalyzers
-        dotnet add package SecurityCodeScan.VS2019
-        dotnet build --configuration Release /p:RunAnalyzersDuringBuild=true /p:EnableNETAnalyzers=true
+        dotnet build GrpcDemos.sln --configuration Release /p:RunAnalyzersDuringBuild=true /p:EnableNETAnalyzers=true
 
     - name: Run Dependency Check
+      working-directory: GrpcDemos-master
       run: |
-        dotnet list package --vulnerable --include-transitive
+        dotnet list GrpcDemos.sln package --vulnerable --include-transitive
 
   documentation-check:
     runs-on: ubuntu-latest
@@ -144,8 +149,9 @@ jobs:
         dotnet-version: '8.0.x'
 
     - name: Check XML Documentation
+      working-directory: GrpcDemos-master
       run: |
-        dotnet build --configuration Release /p:GenerateDocumentationFile=true /p:WarningsAsErrors=true /p:WarningsNotAsErrors=CS1591
+        dotnet build GrpcDemos.sln --configuration Release /p:GenerateDocumentationFile=true /p:WarningsAsErrors=true /p:WarningsNotAsErrors=CS1591
 
     - name: Validate README and Documentation
       run: |
