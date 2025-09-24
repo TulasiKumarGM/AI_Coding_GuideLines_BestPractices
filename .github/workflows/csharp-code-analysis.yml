@@ -237,6 +237,18 @@ jobs:
         Generated automatically by CI.
         EOF
 
+        # Append extracted Best Practices sections from CSharp-Coding-Guidelines.md
+        {
+          echo "";
+          echo "## Extracted Best Practices";
+          echo "";
+          # Security Best Practices (entire section until next top-level heading)
+          sed -n '/^## Security Best Practices/,/^## /p' CSharp-Coding-Guidelines.md | sed '$d' || true;
+          echo "";
+          # Unit Testing Best Practices (subsection until next subsection or next section)
+          sed -n -E '/^### Unit Testing Best Practices/,/^## |^### /p' CSharp-Coding-Guidelines.md | sed '$d' || true;
+        } >> reports/csharp-guidelines-audit.md
+
     - name: Upload Guidelines Audit Report
       uses: actions/upload-artifact@v4
       with:
