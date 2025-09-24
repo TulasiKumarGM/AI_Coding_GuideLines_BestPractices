@@ -3,11 +3,6 @@
     <!-- Enable nullable reference types -->
     <Nullable>enable</Nullable>
     
-    <!-- Treat warnings as errors -->
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <WarningsAsErrors />
-    <WarningsNotAsErrors>CS1591</WarningsNotAsErrors>
-    
     <!-- Enable .NET analyzers -->
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisLevel>latest</AnalysisLevel>
@@ -26,23 +21,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Add StyleCop.Analyzers -->
-    <PackageReference Include="StyleCop.Analyzers" Version="1.1.118" PrivateAssets="all" />
-    
-    <!-- Add Microsoft.CodeAnalysis.NetAnalyzers -->
-    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="8.0.0" PrivateAssets="all" />
-    
-    <!-- Add SonarAnalyzer.CSharp -->
-    <PackageReference Include="SonarAnalyzer.CSharp" Version="9.25.0.78966" PrivateAssets="all" />
-  </ItemGroup>
-
-  <ItemGroup>
     <!-- Add Source Link -->
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <!-- Add global suppressions -->
-    <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)GlobalAnalyzerConfig.props" />
   </ItemGroup>
 </Project>

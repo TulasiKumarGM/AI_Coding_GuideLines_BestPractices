@@ -39,7 +39,7 @@ jobs:
 
     - name: Restore dependencies
       working-directory: GrpcDemos-master
-      run: dotnet restore GrpcDemos.sln
+      run: dotnet restore GrpcDemos.sln --verbosity normal
 
     - name: Build
       working-directory: GrpcDemos-master

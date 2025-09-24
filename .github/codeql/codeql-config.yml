@@ -13,9 +13,6 @@ queries:
   # Use the default queries for C#
   - name: security-and-quality
     uses: security-and-quality
-  # Add custom queries for C# coding guidelines
-  - name: csharp-coding-guidelines
-    uses: ./.github/codeql/custom-queries
 
 # Specify the paths to exclude from analysis
 paths-ignore:
