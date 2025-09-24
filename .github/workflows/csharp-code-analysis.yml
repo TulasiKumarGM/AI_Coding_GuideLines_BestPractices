@@ -10,6 +10,8 @@ on:
 jobs:
   code-analysis:
     runs-on: ubuntu-latest
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     
     steps:
     - name: Checkout code
@@ -71,17 +73,17 @@ jobs:
         fi
 
     - name: Upload Code Coverage
-      if: steps.coverage.outcome == 'success' && secrets.CODECOV_TOKEN != ''
+      if: steps.coverage.outcome == 'success' && env.CODECOV_TOKEN != ''
       uses: codecov/codecov-action@v4
       with:
-        token: ${{ secrets.CODECOV_TOKEN }}
+        token: ${{ env.CODECOV_TOKEN }}
         files: GrpcDemos-master/coverage/Cobertura.xml
         flags: unittests
         name: codecov-umbrella
         fail_ci_if_error: true
 
     - name: Skip Codecov Upload (no token)
-      if: steps.coverage.outcome == 'success' && secrets.CODECOV_TOKEN == ''
+      if: steps.coverage.outcome == 'success' && env.CODECOV_TOKEN == ''
       run: |
         echo "CODECOV_TOKEN not set. Skipping Codecov upload to avoid failure."
 
