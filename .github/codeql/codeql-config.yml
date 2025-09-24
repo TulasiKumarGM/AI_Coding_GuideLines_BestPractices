@@ -1,0 +1,29 @@
+name: "C# CodeQL Configuration"
+
+# This configuration file specifies the languages to analyze and queries to run
+# for the CodeQL analysis. For more information, see:
+# https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning
+
+# Specify the languages to analyze
+languages:
+  - csharp
+
+# Specify the queries to run
+queries:
+  # Use the default queries for C#
+  - name: security-and-quality
+    uses: security-and-quality
+  # Add custom queries for C# coding guidelines
+  - name: csharp-coding-guidelines
+    uses: ./.github/codeql/custom-queries
+
+# Specify the paths to exclude from analysis
+paths-ignore:
+  - '**/bin/**'
+  - '**/obj/**'
+  - '**/packages/**'
+  - '**/node_modules/**'
+
+# Specify the paths to include in analysis
+paths:
+  - 'GrpcDemos-master/**/*.cs'

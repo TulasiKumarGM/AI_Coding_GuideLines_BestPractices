@@ -1,0 +1,15 @@
+# Global code owners
+* @your-username
+
+# C# files
+*.cs @your-username
+
+# Configuration files
+*.json @your-username
+*.yml @your-username
+*.yaml @your-username
+.editorconfig @your-username
+stylecop.json @your-username
+
+# Documentation
+*.md @your-username
