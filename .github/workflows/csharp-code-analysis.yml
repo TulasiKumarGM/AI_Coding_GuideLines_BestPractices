@@ -1,0 +1,163 @@
+name: C# Code Analysis and Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  code-analysis:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build with analysis
+      run: |
+        dotnet build --configuration Release --no-restore --verbosity normal
+        dotnet build --configuration Release --no-restore --verbosity normal /p:EnableNETAnalyzers=true /p:RunAnalyzersDuringBuild=true
+
+    - name: Run StyleCop Analysis
+      run: |
+        dotnet add package StyleCop.Analyzers --version 1.2.0-beta.556
+        dotnet build --configuration Release --no-restore /p:RunAnalyzersDuringBuild=true /p:EnableNETAnalyzers=true
+
+    - name: Run SonarCloud Analysis
+      if: github.event_name == 'pull_request'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      run: |
+        dotnet tool install --global dotnet-sonarscanner
+        dotnet sonarscanner begin \
+          /k:"${{ github.repository }}" \
+          /o:"${{ github.repository_owner }}" \
+          /d:sonar.token="${{ secrets.SONAR_TOKEN }}" \
+          /d:sonar.host.url="https://sonarcloud.io" \
+          /d:sonar.cs.opencover.reportsPaths="coverage.xml"
+        dotnet build --configuration Release
+        dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+
+    - name: Generate Code Coverage
+      run: |
+        dotnet tool install --global dotnet-reportgenerator-globaltool
+        dotnet add package coverlet.collector
+        dotnet test --collect:"XPlat Code Coverage" --results-directory ./coverage
+
+    - name: Upload Code Coverage
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage/coverage.cobertura.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: true
+
+    - name: Comment PR with Analysis Results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          
+          // Read analysis results and create a comment
+          const comment = `## 🔍 C# Code Analysis Results
+          
+          ### ✅ Analysis Complete
+          - **StyleCop**: Code style analysis completed
+          - **.NET Analyzers**: Built-in analyzers executed
+          - **Code Coverage**: Coverage report generated
+          
+          ### 📊 Metrics
+          - Build Status: ✅ Successful
+          - Analysis Tools: StyleCop, .NET Analyzers, SonarCloud
+          
+          ### 📋 Next Steps
+          1. Review any warnings or errors in the build logs
+          2. Address StyleCop violations
+          3. Ensure code coverage meets project standards
+          4. Check SonarCloud for additional quality gates
+          
+          *This analysis was performed automatically on commit ${context.sha.substring(0, 7)}*`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
+
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: code-analysis
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Run Security Scan
+      run: |
+        dotnet add package Microsoft.CodeAnalysis.NetAnalyzers
+        dotnet add package SecurityCodeScan.VS2019
+        dotnet build --configuration Release /p:RunAnalyzersDuringBuild=true /p:EnableNETAnalyzers=true
+
+    - name: Run Dependency Check
+      run: |
+        dotnet list package --vulnerable --include-transitive
+
+  documentation-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Check XML Documentation
+      run: |
+        dotnet build --configuration Release /p:GenerateDocumentationFile=true /p:WarningsAsErrors=true /p:WarningsNotAsErrors=CS1591
+
+    - name: Validate README and Documentation
+      run: |
+        if [ ! -f "README.md" ]; then
+          echo "❌ README.md is missing"
+          exit 1
+        fi
+        
+        if [ ! -f "CSharp-Coding-Guidelines.md" ]; then
+          echo "❌ CSharp-Coding-Guidelines.md is missing"
+          exit 1
+        fi
+        
+        echo "✅ Documentation files present"
+

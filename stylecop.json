@@ -1,0 +1,63 @@
+{
+  "$schema": "https://raw.githubusercontent.com/DotNetAnalyzers/StyleCopAnalyzers/master/StyleCop.Analyzers/StyleCop.Analyzers/Settings/stylecop.schema.json",
+  "settings": {
+    "documentationRules": {
+      "companyName": "Your Company Name",
+      "copyrightText": "Copyright (c) {companyName}. All rights reserved.",
+      "xmlHeader": true,
+      "fileHeader": "Copyright (c) {companyName}. All rights reserved.",
+      "variables": {
+        "companyName": "Your Company Name"
+      }
+    },
+    "indentation": {
+      "indentationSize": 4,
+      "tabSize": 4,
+      "useTabs": false
+    },
+    "spacingRules": {
+      "spacing": {
+        "spaceWithinMethodDeclarationParenthesis": false,
+        "spaceWithinMethodCallParenthesis": false,
+        "spaceWithinExpressionParenthesis": false,
+        "spaceWithinCastParenthesis": false,
+        "spaceWithinOtherParenthesis": false,
+        "spaceAfterCast": false,
+        "spaceBeforeOpenSquareBracket": false,
+        "spaceBetweenEmptySquareBrackets": false,
+        "spaceWithinSquareBrackets": false,
+        "spaceAfterColonInBaseTypeDeclaration": true,
+        "spaceAfterComma": true,
+        "spaceAfterDot": false,
+        "spaceAfterSemicolonInForStatement": true,
+        "spaceBeforeColonInBaseTypeDeclaration": true,
+        "spaceBeforeComma": false,
+        "spaceBeforeDot": false,
+        "spaceBeforeSemicolonInForStatement": false,
+        "spaceWithinAttributeBrackets": false,
+        "spaceWithinBrackets": false,
+        "spaceWithinSquares": false
+      }
+    },
+    "readabilityRules": {
+      "allowBuiltInTypeAliases": false,
+      "allowMembersOrderedByAccess": true
+    },
+    "orderingRules": {
+      "systemUsingDirectivesFirst": true,
+      "usingDirectivesPlacement": "outsideNamespace"
+    },
+    "namingRules": {
+      "allowCommonHungarianPrefixes": false,
+      "allowedHungarianPrefixes": []
+    },
+    "maintainabilityRules": {
+      "topLevelTypes": ["class", "interface", "struct", "delegate", "enum"]
+    },
+    "layoutRules": {
+      "newlineAtEndOfFile": "require",
+      "allowConsecutiveUsings": false
+    }
+  }
+}
+
