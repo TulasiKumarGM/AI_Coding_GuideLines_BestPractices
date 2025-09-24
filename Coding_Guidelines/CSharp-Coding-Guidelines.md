@@ -709,6 +709,177 @@ public async Task ProcessFileAsync(string filePath)
 
 ## Conclusion
 
+---
+
+## Additional Microsoft-Aligned Best Practices
+
+### Nullable Reference Types
+- Enable nullable in all projects and treat warnings as errors where feasible.
+- Prefer non-nullable reference types by default; use `?` only when truly optional.
+- Validate and guard inputs; use `ArgumentNullException.ThrowIfNull(...)`.
+- Avoid `!` (null-forgiving) except at well-justified boundaries.
+
+```xml
+<!-- In .csproj -->
+<PropertyGroup>
+  <Nullable>enable</Nullable>
+  <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+</PropertyGroup>
+```
+
+### Analyzers and Style Enforcement
+- Enable .NET analyzers and include StyleCop.Analyzers for style consistency.
+- Use `.editorconfig` to enforce formatting and naming rules.
+- Fail builds on analyzer warnings in CI for libraries; consider phased adoption for apps.
+
+```xml
+<ItemGroup>
+  <PackageReference Include="StyleCop.Analyzers" Version="1.2.0" PrivateAssets="all" />
+</ItemGroup>
+<PropertyGroup>
+  <AnalysisLevel>latest</AnalysisLevel>
+  <EnableNETAnalyzers>true</EnableNETAnalyzers>
+  <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
+</PropertyGroup>
+```
+
+### Source Link and Deterministic Builds
+- Enable Source Link, deterministic and reproducible builds for libraries.
+
+```xml
+<PropertyGroup>
+  <PublishRepositoryUrl>true</PublishRepositoryUrl>
+  <EmbedUntrackedSources>true</EmbedUntrackedSources>
+  <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  <Deterministic>true</Deterministic>
+</PropertyGroup>
+<ItemGroup>
+  <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+</ItemGroup>
+```
+
+### Async Naming and ConfigureAwait
+- Suffix async methods with `Async`.
+- Avoid `async void` except event handlers.
+- In libraries, use `ConfigureAwait(false)` on awaits; in applications, prefer default context.
+
+```csharp
+public async Task<Data> FetchAsync(CancellationToken ct) =>
+    await _client.GetAsync(ct).ConfigureAwait(false);
+```
+
+### Thread-Safety and Immutability
+- Prefer immutable types and records for value-like data.
+- Minimize shared state; when needed, protect with `lock`, `SemaphoreSlim`, or concurrent collections.
+- Avoid static mutable state; if required, ensure proper synchronization.
+
+```csharp
+private readonly object _gate = new();
+public void AddItem(Item item)
+{
+    lock (_gate)
+    {
+        _items.Add(item);
+    }
+}
+```
+
+### Logging Standards
+- Use `Microsoft.Extensions.Logging` abstractions.
+- Choose appropriate log levels; avoid logging secrets/PII. Use event IDs where applicable.
+- Prefer structured logging with named placeholders.
+
+```csharp
+_logger.LogInformation(EventIds.UserCreated, "User {UserId} created", user.Id);
+```
+
+### Configuration and Options
+- Bind strongly typed options with validation and fail-fast on invalid configuration.
+- Store secrets outside source code (User Secrets, environment variables, Key Vault).
+
+```csharp
+builder.Services.AddOptions<MySettings>()
+    .Bind(builder.Configuration.GetSection("MySettings"))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+```
+
+### Dependency Versioning and Packaging
+- Pin versions; avoid floating versions. Keep dependencies updated regularly.
+- Verify licenses and transitive dependencies. Minimize dependency surface for libraries.
+
+### Serialization Guidelines
+- Prefer `System.Text.Json`; define explicit contracts and casing (camelCase).
+- Provide custom converters for complex types and date/time.
+
+```csharp
+builder.Services.ConfigureHttpJsonOptions(o =>
+{
+    o.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    o.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
+```
+
+### Date and Time
+- Use UTC for storage and `DateTimeOffset` for external inputs and timestamps.
+- Avoid `DateTime.Now`; prefer `DateTimeOffset.UtcNow`. Centralize clock access via an interface where needed.
+
+### Analyzer Suppression Policy
+- Fix warnings rather than suppress. If suppression is necessary:
+  - Prefer targeted `#pragma warning disable/restore` scoped to minimal code.
+  - Include clear justification and tracking link.
+  - Avoid global or project-wide suppressions unless formally approved.
+
+### Style Decisions
+- Use file-scoped namespaces.
+- Order `using` directives: System first, then third-party, then project, sorted alphabetically.
+- Prefer explicit types when it improves clarity; `var` when the type is obvious.
+- Consider expression-bodied members for simple properties/methods.
+
+```csharp
+namespace MyApp.Models;
+public record User(Guid Id, string Email);
+```
+
+### Records vs Classes
+- Use records for immutable, value-like data and withers; classes for entities with identity and behavior.
+
+```csharp
+public record Money(decimal Amount, string Currency)
+{
+    public Money Convert(decimal rate) => this with { Amount = Amount * rate };
+}
+```
+
+### Span/Memory for High-Performance Code
+- In hot paths, consider `Span<T>`, `ReadOnlySpan<T>`, and pooling to reduce allocations.
+- Avoid premature optimization; measure with benchmarks before adopting.
+
+```csharp
+public static int ParseLeadingInt(ReadOnlySpan<char> s)
+{
+    int value = 0;
+    foreach (var ch in s)
+    {
+        if (!char.IsDigit(ch)) break;
+        value = checked(value * 10 + (ch - '0'));
+    }
+    return value;
+}
+```
+
+### Error Model for Libraries
+- Throw meaningful exceptions; avoid returning null for exceptional control flow.
+- Design a clear exception taxonomy; document thrown exceptions in XML docs.
+
+### Code Review Policy (Process)
+- Definition of done includes: analyzers clean, tests updated, docs updated, and security reviewed.
+- Require at least one reviewer; block merging on failing checks.
+
+---
+
+## Conclusion
+
 These guidelines represent Microsoft's recommended best practices for C# development. Following these standards will help ensure:
 
 - **Consistency** across your codebase
@@ -722,4 +893,5 @@ Remember to adapt these guidelines to your specific project requirements while m
 ---
 
 *This document is based on Microsoft's official C# coding conventions and best practices as of 2024.*
+
 

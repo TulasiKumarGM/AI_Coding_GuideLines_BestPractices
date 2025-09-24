@@ -173,10 +173,10 @@ jobs:
           exit 1
         fi
 
-        if [ -f "CSharp-Coding-Guidelines.md" ]; then
-          echo "✅ CSharp-Coding-Guidelines.md found"
+        if [ -f "Coding_Guidelines/CSharp-Coding-Guidelines.md" ]; then
+          echo "✅ Coding_Guidelines/CSharp-Coding-Guidelines.md found"
         else
-          echo "❌ CSharp-Coding-Guidelines.md is missing at repository root"
+          echo "❌ Coding_Guidelines/CSharp-Coding-Guidelines.md is missing"
           exit 1
         fi
 
@@ -184,6 +184,15 @@ jobs:
 
     - name: Generate C# Guidelines Audit Report
       run: |
+        # Resolve path to guidelines (prefer new folder)
+        if [ -f "Coding_Guidelines/CSharp-Coding-Guidelines.md" ]; then
+          GUIDELINES_PATH="Coding_Guidelines/CSharp-Coding-Guidelines.md"
+        elif [ -f "CSharp-Coding-Guidelines.md" ]; then
+          GUIDELINES_PATH="CSharp-Coding-Guidelines.md"
+        else
+          GUIDELINES_PATH=""
+        fi
+
         mkdir -p reports
         cat > reports/csharp-guidelines-audit.md << 'EOF'
         # C# Guidelines Audit Report (v1)
@@ -238,16 +247,22 @@ jobs:
         EOF
 
         # Append extracted Best Practices sections from CSharp-Coding-Guidelines.md
-        {
-          echo "";
-          echo "## Extracted Best Practices";
-          echo "";
-          # Security Best Practices (entire section until next top-level heading)
-          sed -n '/^## Security Best Practices/,/^## /p' CSharp-Coding-Guidelines.md | sed '$d' || true;
-          echo "";
-          # Unit Testing Best Practices (subsection until next subsection or next section)
-          sed -n -E '/^### Unit Testing Best Practices/,/^## |^### /p' CSharp-Coding-Guidelines.md | sed '$d' || true;
-        } >> reports/csharp-guidelines-audit.md
+        if [ -n "$GUIDELINES_PATH" ]; then
+          {
+            echo "";
+            echo "## Extracted Best Practices";
+            echo "";
+            echo "_Source: \`$GUIDELINES_PATH\`_";
+            echo "";
+            # Security Best Practices (entire section until next top-level heading)
+            sed -n '/^## Security Best Practices/,/^## /p' "$GUIDELINES_PATH" | sed '$d' || true;
+            echo "";
+            # Unit Testing Best Practices (subsection until next subsection or next section)
+            sed -n -E '/^### Unit Testing Best Practices/,/^## |^### /p' "$GUIDELINES_PATH" | sed '$d' || true;
+          } >> reports/csharp-guidelines-audit.md
+        else
+          echo "\n> Guidelines file not found in repo; skipping extraction." >> reports/csharp-guidelines-audit.md
+        fi
 
     - name: Generate Code Review Report (Best Practices Validation)
       run: |
