@@ -249,9 +249,68 @@ jobs:
           sed -n -E '/^### Unit Testing Best Practices/,/^## |^### /p' CSharp-Coding-Guidelines.md | sed '$d' || true;
         } >> reports/csharp-guidelines-audit.md
 
+    - name: Generate Code Review Report (Best Practices Validation)
+      run: |
+        mkdir -p reports
+        REPORT=reports/code-review-report.md
+        echo "# Automated C# Code Review Report" > "$REPORT"
+        echo "" >> "$REPORT"
+        echo "- Solution: \`GrpcDemos-master/GrpcDemos.sln\`" >> "$REPORT"
+        echo "- Generated: $(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> "$REPORT"
+        echo "" >> "$REPORT"
+
+        echo "## Repository-Level Best Practices" >> "$REPORT"
+        echo "" >> "$REPORT"
+        if [ -f ".editorconfig" ]; then echo "- ✅ .editorconfig present" >> "$REPORT"; else echo "- ❌ .editorconfig missing" >> "$REPORT"; fi
+        if [ -f "stylecop.json" ]; then echo "- ✅ stylecop.json present" >> "$REPORT"; else echo "- ❌ stylecop.json missing" >> "$REPORT"; fi
+        if [ -f "CSharp-Coding-Guidelines.md" ]; then echo "- ✅ CSharp-Coding-Guidelines.md present" >> "$REPORT"; else echo "- ❌ CSharp-Coding-Guidelines.md missing" >> "$REPORT"; fi
+        echo "" >> "$REPORT"
+
+        echo "## Project-Level Validation" >> "$REPORT"
+        echo "" >> "$REPORT"
+        echo "| Project | Nullable | WarningsAsErrors | XML Docs | Deterministic | StyleCop.Analyzers |" >> "$REPORT"
+        echo "|---|---|---|---|---|---|" >> "$REPORT"
+        while IFS= read -r -d '' CSPROJ; do 
+          NAME=$(basename "$CSPROJ")
+          NRT=$(grep -E "<Nullable>enable</Nullable>" -q "$CSPROJ" && echo ✅ || echo ❌)
+          WAE=$(grep -E "<(TreatWarningsAsErrors|WarningsAsErrors)>true</(TreatWarningsAsErrors|WarningsAsErrors)>" -q "$CSPROJ" && echo ✅ || echo ❌)
+          XML=$(grep -E "<GenerateDocumentationFile>true</GenerateDocumentationFile>" -q "$CSPROJ" && echo ✅ || echo ❌)
+          DET=$(grep -E "<Deterministic>true</Deterministic>" -q "$CSPROJ" && echo ✅ || echo ❌)
+          SC=$(grep -E "PackageReference[^>]+Include=\"StyleCop.Analyzers\"" -q "$CSPROJ" && echo ✅ || echo ❌)
+          echo "| $NAME | $NRT | $WAE | $XML | $DET | $SC |" >> "$REPORT"
+        done < <(find GrpcDemos-master -type f -name "*.csproj" -print0)
+
+        echo "" >> "$REPORT"
+        echo "## Build Warnings Summary" >> "$REPORT"
+        echo "" >> "$REPORT"
+        set +e
+        dotnet build GrpcDemos-master/GrpcDemos.sln --configuration Release --no-restore --verbosity minimal > build.log 2>&1
+        WARN_COUNT=$(grep -Eo "warning [A-Z]{2}[0-9]{4}" build.log | wc -l | tr -d ' ')
+        echo "- Total warnings: ${WARN_COUNT}" >> "$REPORT"
+        echo "" >> "$REPORT"
+        echo "<details><summary>First 50 warnings</summary>" >> "$REPORT"
+        echo "" >> "$REPORT"
+        grep -E "warning [A-Z]{2}[0-9]{4}" build.log | head -n 50 | sed 's/^/- /' >> "$REPORT" || true
+        echo "" >> "$REPORT"
+        echo "</details>" >> "$REPORT"
+        set -e
+
+        echo "" >> "$REPORT"
+        echo "## Notes" >> "$REPORT"
+        echo "- This report checks for key best-practice flags in each \*.csproj and summarizes build warnings." >> "$REPORT"
+        echo "- For full analyzer findings, review the build logs and any uploaded coverage/analysis artifacts." >> "$REPORT"
+
     - name: Upload Guidelines Audit Report
       uses: actions/upload-artifact@v4
       with:
         name: csharp-guidelines-audit
         path: reports/csharp-guidelines-audit.md
+
+    - name: Upload Code Review Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: code-review-report
+        path: |
+          reports/code-review-report.md
+          build.log
 
